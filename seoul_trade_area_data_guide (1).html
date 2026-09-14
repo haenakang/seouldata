@@ -1,0 +1,2565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>서울 상권분석 데이터 교안 & 가설 3 시각적 레포트 (단일 파일 공유용)</title>
+  <meta name="description" content="서울 상권분석 DB 11개 테이블 읽는 법, 가설 3 식후 소비 시각적 레포트, Grain, 컬럼 사전, ERD 관계도 단일 포터블 HTML">
+  
+  <!-- Web Fonts & Chart.js CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Embedded Full Design System CSS -->
+  <style>
+    :root {
+      --bg-app: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --text-primary: #0F172A;
+      --text-secondary: #334155;
+      --text-muted: #64748B;
+      --text-light: #94A3B8;
+      
+      --cat-sales: #D97706;
+      --cat-sales-bg: #FEF3C7;
+      --cat-pop: #2563EB;
+      --cat-pop-bg: #DBEAFE;
+      --cat-store: #0D9488;
+      --cat-store-bg: #CCFBF1;
+      --cat-location: #8B5CF6;
+      --cat-location-bg: #EDE9FE;
+      --cat-master: #475569;
+      --cat-master-bg: #F1F5F9;
+
+      --accent-coffee: #7C4A27;
+      --accent-rose: #E11D48;
+      --accent-green: #16A34A;
+      --border-color: #E2E8F0;
+      --border-dark: #CBD5E1;
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.06);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .guide-app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .guide-header {
+      height: 64px;
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-left .logo {
+      font-size: 26px;
+    }
+
+    .guide-header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Global Search Box */
+    .global-search-box {
+      position: relative;
+      width: 340px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    #global-search-input {
+      width: 100%;
+      padding: 8px 12px 8px 36px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 13px;
+      background-color: #F8FAFC;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    #global-search-input:focus {
+      background-color: #FFFFFF;
+      border-color: var(--cat-pop);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 6px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 200;
+    }
+
+    .search-dropdown.hidden {
+      display: none;
+    }
+
+    .search-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F1F5F9;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .search-item:hover {
+      background-color: #F8FAFC;
+    }
+
+    .search-item .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .search-item .desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* View Mode Toggle Buttons */
+    .view-mode-toggle {
+      display: flex;
+      background-color: #F1F5F9;
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .mode-btn {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border: none;
+      background: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      background-color: #FFFFFF;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Layout */
+    .workspace-layout {
+      display: flex;
+      flex: 1;
+    }
+
+    /* Sidebar Navigation */
+    .guide-sidebar {
+      width: 270px;
+      background-color: #FFFFFF;
+      border-right: 1px solid var(--border-color);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      position: sticky;
+      top: 64px;
+      height: calc(100vh - 64px);
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0 8px 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s;
+    }
+
+    .nav-item:hover {
+      background-color: #F8FAFC;
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background-color: #F1F5F9;
+      color: var(--cat-pop);
+    }
+
+    .table-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .table-nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .table-nav-btn:hover {
+      background-color: #F8FAFC;
+    }
+
+    .table-nav-btn.active {
+      background-color: #EFF6FF;
+      color: var(--cat-pop);
+      font-weight: 700;
+    }
+
+    .table-nav-btn .badge-cat {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    /* Main Content Area */
+    .guide-content {
+      flex: 1;
+      padding: 32px 40px;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+
+    .view-pane {
+      display: none;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .view-pane.active {
+      display: flex;
+    }
+
+    .content-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-title h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .section-title p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Cards & Layout */
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Overview Banner & Data Literacy Grid */
+    .banner-card {
+      background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+      border: 1px solid var(--border-color);
+      border-left: 6px solid var(--cat-pop);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .banner-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--cat-pop);
+      letter-spacing: 0.5px;
+    }
+
+    .banner-card h2 {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    /* KPI Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--cat-sales);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .kpi-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--text-light);
+    }
+
+    /* Charts Grid */
+    .charts-grid-two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .chart-box {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chart-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chart-header h3 {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .chart-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Ranking Table & Filters */
+    .ranking-table-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .table-header-flex {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .select-filter {
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      background-color: #FFFFFF;
+    }
+
+    .insight-box {
+      background-color: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-left: 6px solid var(--cat-sales);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .insight-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .insight-header h4 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #92400E;
+    }
+
+    .insight-body ul {
+      padding-left: 20px;
+      font-size: 13px;
+      color: #78350F;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      line-height: 1.6;
+    }
+
+    .literacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .lit-card {
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .lit-num {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--cat-pop);
+    }
+
+    .lit-card h4 {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .lit-card p {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Table Comparison Matrix Table */
+    .matrix-table {
+      font-size: 12px;
+    }
+
+    .matrix-table th {
+      background-color: #F1F5F9;
+      font-weight: 800;
+    }
+
+    .matrix-table td {
+      vertical-align: top;
+    }
+
+    /* Table Cards Grid */
+    .table-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .t-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .t-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-dark);
+    }
+
+    .t-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .t-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .t-card-icon {
+      font-size: 24px;
+    }
+
+    .t-card h3 {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .t-card-catchphrase {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-coffee);
+      background-color: #FFFBEB;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border-left: 3px solid var(--cat-sales);
+    }
+
+    .t-card-tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .t-card-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .t-card-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      background-color: #F8FAFC;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* 10-Step Educational Textbook Detail View */
+    .dictionary-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .table-tabs-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .dict-tab-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background-color: #FFFFFF;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .dict-tab-btn.active {
+      background-color: var(--text-primary);
+      color: #FFFFFF;
+      border-color: var(--text-primary);
+    }
+
+    .dict-detail-card {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .tb-step-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-left: 4px solid var(--cat-pop);
+      padding-left: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* Grain Highlight Banner */
+    .grain-banner {
+      background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+      border: 2px solid #93C5FD;
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .grain-visual {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1E40AF;
+      background-color: #FFFFFF;
+      padding: 10px 16px;
+      border-radius: 8px;
+      display: inline-block;
+      align-self: flex-start;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .grain-examples {
+      font-size: 13px;
+      color: #1E3A8A;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Keys Card List */
+    .keys-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+
+    .key-card {
+      background-color: #FFFDF5;
+      border: 1px solid #FCD34D;
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .key-card code {
+      font-weight: 800;
+      font-size: 14px;
+      color: #92400E;
+    }
+
+    .key-card .role {
+      font-size: 12px;
+      color: #78350F;
+    }
+
+    /* Column Category Groups */
+    .column-category-box {
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .column-category-box h5 {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--cat-pop);
+    }
+
+    /* Confusing Column Box */
+    .confusing-box {
+      background-color: #FFFBEB;
+      border: 1px solid #FDE68A;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: #92400E;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .confusing-box h5 {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    /* Can See vs Cannot See Lists */
+    .can-cannot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .can-box {
+      background-color: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+
+    .can-box h5 {
+      color: #15803D;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .cannot-box {
+      background-color: #FEF2F2;
+      border: 1px solid #FECACA;
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+
+    .cannot-box h5 {
+      color: #B91C1C;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    /* Row Interpreter Card */
+    .row-interpreter-card {
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      color: #F8FAFC;
+      padding: 20px;
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .row-interpreter-card .human-sentence {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.6;
+      color: #FDE047;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 4px solid #F59E0B;
+    }
+
+    /* Dictionary Table */
+    .dict-table-container {
+      overflow-x: auto;
+    }
+
+    .dict-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .dict-table th, .dict-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    .dict-table th {
+      background-color: #F8FAFC;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .tag-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .tag-badge.key { background-color: #FEF3C7; color: #92400E; }
+    .tag-badge.metric { background-color: #DCFCE7; color: #15803D; }
+    .tag-badge.calc { background-color: #DBEAFE; color: #1E40AF; }
+    .tag-badge.filter { background-color: #F3E8FF; color: #6B21A8; }
+    .tag-badge.time { background-color: #FEE2E2; color: #991B1B; }
+    .tag-badge.location { background-color: #E0E7FF; color: #3730A3; }
+
+    /* ERD Box */
+    .erd-box {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .erd-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .erd-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .legend-dot.sales { background-color: var(--cat-sales); }
+    .legend-dot.population { background-color: var(--cat-pop); }
+    .legend-dot.store { background-color: var(--cat-store); }
+    .legend-dot.location { background-color: var(--cat-location); }
+    .legend-dot.master { background-color: var(--cat-master); }
+
+    .erd-diagram-container {
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 30px;
+      min-height: 440px;
+      position: relative;
+      overflow-x: auto;
+    }
+
+    .erd-grid-diagram {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      align-items: center;
+    }
+
+    .erd-node {
+      background-color: #FFFFFF;
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .erd-node:hover, .erd-node.selected {
+      transform: scale(1.03);
+      box-shadow: var(--shadow-md);
+    }
+
+    .erd-node.sales { border-color: var(--cat-sales); }
+    .erd-node.population { border-color: var(--cat-pop); }
+    .erd-node.store { border-color: var(--cat-store); }
+    .erd-node.location { border-color: var(--cat-location); }
+    .erd-node.master { border-color: var(--cat-master); }
+
+    .erd-node.selected {
+      outline: 3px solid rgba(37, 99, 235, 0.4);
+    }
+
+    .erd-node.dimmed {
+      opacity: 0.35;
+    }
+
+    .erd-node-title {
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .erd-node-keys {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'Fira Code', monospace;
+    }
+
+    .erd-info-panel {
+      background-color: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-size: 13px;
+      color: #1E40AF;
+    }
+
+    /* Formulas Grid */
+    .formulas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .formula-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .f-category {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--cat-pop);
+      background-color: var(--cat-pop-bg);
+      padding: 3px 8px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+
+    .f-expression {
+      background-color: #F8FAFC;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .f-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Footer */
+    .guide-footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      background-color: #FFFFFF;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace-layout {
+        flex-direction: column;
+      }
+      .guide-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+      }
+      .charts-grid-two {
+        grid-template-columns: 1fr;
+      }
+      .erd-grid-diagram {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .can-cannot-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="guide-app">
+    
+    <!-- Top Header -->
+    <header class="guide-header">
+      <div class="header-left">
+        <div class="logo">📘</div>
+        <div>
+          <h1>서울 상권분석 데이터 교안 (단일 파일 공유 버전)</h1>
+          <p class="subtitle">Seoul Commercial Area DB — 11개 테이블 읽는 법 & 가설 3 식후 소비 레포트</p>
+        </div>
+      </div>
+
+      <!-- Global Search Bar -->
+      <div class="header-right">
+        <div class="global-search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="global-search-input" placeholder="데이터, 컬럼, 가설, 공식 검색 (예: 2030, 폐업, 매출)..." autocomplete="off">
+          <div id="search-dropdown" class="search-dropdown hidden"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace with Left Sidebar & Main Content -->
+    <div class="workspace-layout">
+
+      <!-- Left Sidebar Navigation -->
+      <aside class="guide-sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-label">시각적 분석 레포트 ⭐</div>
+          <a href="#section-h3-report" class="nav-item active" data-section="section-h3-report">
+            <span class="icon">🍚☕</span> 가설 3: 식후 카페 소비 레포트
+          </a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">데이터 읽는 법 교안</div>
+          <a href="#section-table-reading" class="nav-item" data-section="section-table-reading">
+            <span class="icon">📘</span> 이 11개 테이블 읽는 법
+          </a>
+          <a href="#section-hypothesis-reading" class="nav-item" data-section="section-hypothesis-reading">
+            <span class="icon">🗺️</span> 가설에 따른 데이터 읽는 법
+          </a>
+          <a href="#section-matrix" class="nav-item" data-section="section-matrix">
+            <span class="icon">📊</span> 11개 테이블 종합 비교표
+          </a>
+          <a href="#section-structure" class="nav-item" data-section="section-structure">
+            <span class="icon">🗂️</span> 전체 데이터 구조 (11개 요약 카드)
+          </a>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">테이블 상세 교안 (10단계 교재)</div>
+          <div class="table-nav-list" id="sidebar-table-list">
+            <!-- Dynamically populated 11 table buttons -->
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">연결 및 분석 설계</div>
+          <a href="#section-erd" class="nav-item" data-section="section-erd">
+            <span class="icon">🕸️</span> ERD 관계도 (대화형 맵)
+          </a>
+          <a href="#section-join" class="nav-item" data-section="section-join">
+            <span class="icon">🔗</span> JOIN 사용설명서
+          </a>
+          <a href="#section-formulas" class="nav-item" data-section="section-formulas">
+            <span class="icon">🧮</span> 분석 공식 모음
+          </a>
+        </div>
+      </aside>
+
+      <!-- Right Main Content Body -->
+      <main class="guide-content">
+
+        <!-- VIEW MODE 1: DATA TEXTBOOK VIEW -->
+        <div id="view-guidebook" class="view-pane active">
+
+          <!-- Section 0: ⭐ 가설 3 시각적 레포트 -->
+          <section id="section-h3-report" class="content-section">
+            <div class="banner-card shadow" style="border-left-color: var(--cat-sales);">
+              <div class="banner-badge" style="color:var(--cat-sales);">⭐ HYPOTHESIS 3 VISUAL REPORT</div>
+              <h2>🍚☕ 가설 3: 음식점 점심 매출 ➔ 카페 오후 매출 (식후 연계 소비) 시각적 분석</h2>
+              <p>주요 음식점(한식·중식·일식·양식 등)의 점심시간대(11~14시) 매출이 높은 상권일수록, 식후 소비 유입으로 카페의 오후시간대(14~17시) 매출도 높은지 <strong>실제 DB 집계 데이터</strong>로 직접 검증합니다.</p>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid" id="h3-kpi-container">
+              <div class="kpi-card shadow">
+                <div class="kpi-title">🍚 서울 주요 상권 평균 점심 외식 매출</div>
+                <div class="kpi-value" id="kpi-h3-lunch">34.3억 원</div>
+                <div class="kpi-sub">음식점 (11시 ~ 14시)</div>
+              </div>
+              <div class="kpi-card shadow">
+                <div class="kpi-title">☕ 서울 주요 상권 평균 오후 카페 매출</div>
+                <div class="kpi-value" id="kpi-h3-afternoon">3.7억 원</div>
+                <div class="kpi-sub">카페 (14시 ~ 17시)</div>
+              </div>
+              <div class="kpi-card shadow">
+                <div class="kpi-title">📈 점심 ➔ 오후 카페 전환 비율 (평균)</div>
+                <div class="kpi-value" id="kpi-h3-ratio">16.68%</div>
+                <div class="kpi-sub">(카페 오후매출 / 음식점 점심매출)</div>
+              </div>
+              <div class="kpi-card shadow" style="border-left: 4px solid var(--accent-rose);">
+                <div class="kpi-title">🏆 식후 카페 연계 1위 상권</div>
+                <div class="kpi-value" id="kpi-h3-top1" style="font-size:18px; color:var(--accent-rose);">명동 남대문 북창동 다동 무교동 관광특구</div>
+                <div class="kpi-sub" id="kpi-h3-top1-sub">전환율 최고 1위 상권: 시청역_8번 (48.77%)</div>
+              </div>
+            </div>
+
+            <!-- Visual Charts Grid (Scatter & Bar Chart) -->
+            <div class="charts-grid-two">
+              <!-- Chart 1: Scatter Plot -->
+              <div class="chart-box card">
+                <div class="chart-header">
+                  <h3>📊 1. 음식점 점심 매출 vs 카페 오후 매출 상관관계 (산점도 Scatter)</h3>
+                  <span class="chart-tag">X축: 음식점 점심(억원) / Y축: 카페 오후(억원)</span>
+                </div>
+                <div class="chart-canvas-container" style="position:relative; height:340px;">
+                  <canvas id="chart-h3-scatter"></canvas>
+                </div>
+              </div>
+
+              <!-- Chart 2: Top 10 Bar Chart -->
+              <div class="chart-box card">
+                <div class="chart-header">
+                  <h3>🏆 2. 식후 카페 매출 Top 10 상권 이중 막대 비교 (Bar Chart)</h3>
+                  <span class="chart-tag">점심 외식(Amber) vs 오후 카페(Tea)</span>
+                </div>
+                <div class="chart-canvas-container" style="position:relative; height:340px;">
+                  <canvas id="chart-h3-bar"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Ranking Table -->
+            <div class="ranking-table-card card">
+              <div class="table-header-flex">
+                <div>
+                  <h3>📋 상권별 식후 카페 소비 연계 전환율 순위 (실제 DB 집계)</h3>
+                  <p style="font-size:12px; color:var(--text-muted);">`sales` 테이블 + `trade_area` 테이블 결합 실제 집계 결과입니다.</p>
+                </div>
+                <div class="filter-group">
+                  <label for="h3-gu-filter" style="font-size:12px; font-weight:700;">자치구 선택:</label>
+                  <select id="h3-gu-filter" class="select-filter">
+                    <option value="ALL">서울 전체 자치구</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="dict-table-container">
+                <table class="dict-table ranking-table">
+                  <thead>
+                    <tr>
+                      <th>순위</th>
+                      <th>상권명</th>
+                      <th>자치구</th>
+                      <th>점심 음식점 매출 (11~14시)</th>
+                      <th>오후 카페 매출 (14~17시)</th>
+                      <th>식후 카페 전환율 (%)</th>
+                      <th>식후 연계 평가</th>
+                    </tr>
+                  </thead>
+                  <tbody id="h3-ranking-tbody">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Insight Box -->
+            <div class="insight-box card">
+              <div class="insight-header">
+                <span class="insight-icon">💡</span>
+                <h4>가설 3 검증 결과 및 카페 출점 인사이트</h4>
+              </div>
+              <div class="insight-body">
+                <ul>
+                  <li><strong>양의 상관관계 입증:</strong> 점심시간대 음식점 소비가 활발한 상권일수록 식후 14~17시 카페 매출액도 비례하여 증가하는 강한 우상향 패턴이 관찰됩니다.</li>
+                  <li><strong>오피스 밀집 지역 (시청역_8번 48.8%):</strong> 직장인들이 점심 식사를 마친 후 곧바로 음료를 테이크아웃하거나 미팅을 진행하여 <strong>음식점 점심 매출의 48.8%에 달하는 폭발적인 오후 카페 매출</strong>이 집계됩니다.</li>
+                  <li><strong>핫플레이스 나들이 상권 (연남동 40.7%, 북촌 30.1%):</strong> 데이트 및 식후 카페 탐방 동선이 일상화된 대표 상권으로, 카페 신규 출점 시 매우 유망한 후보지입니다.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 1: 이 11개 테이블 읽는 법 -->
+          <section id="section-table-reading" class="content-section">
+            <div class="banner-card shadow">
+              <div class="banner-badge">📘 TABLE READING GUIDE</div>
+              <h2>서울 상권분석 11개 테이블 개별 읽는 법</h2>
+              <p>각 테이블을 다룰 때 데이터를 어떻게 해석하고 읽어야 하는지 핵심 원칙과 컬럼 읽기법을 정리한 가이드입니다.</p>
+              
+              <div class="literacy-grid">
+                <div class="lit-card">
+                  <div class="lit-num">💰 1. sales (매출) 읽는 법</div>
+                  <h4>분기 × 상권 × 업종 단위 해석</h4>
+                  <p>• 한 줄(Row)은 특정 분기, 특정 상권의 1개 업종 매출 기록입니다.<br>• <code>당월_매출_금액 / 당월_매출_건수</code> 로 평균 객단가를 계산해 읽습니다.<br>• 11~14시(점심)와 14~17시(오후) 매출을 비교하여 피크 타임을 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">👥 2. foot_traffic (유동인구) 읽는 법</div>
+                  <h4>업종 없는 상권 통행자 수 해석</h4>
+                  <p>• 업종 구분이 없으므로 상권 고유의 유동인구로 읽습니다.<br>• <code>(연령대_20_유동인구 + 연령대_30_유동인구) / 총_유동인구</code> 로 2030 유동인구 비중을 산출해 타깃 밀집도를 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">🏪 3. store (점포) 읽는 법</div>
+                  <h4>점포 현황 및 경쟁 구조 해석</h4>
+                  <p>• <code>프랜차이즈_점포_수 / 점포_수</code> 로 프랜차이즈 카페 잠식도를 읽습니다.<br>• <code>개업_률</code> 과 <code>폐업_률</code> 로 상권 진입 및 생존 리스크를 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">☕ 4. industry (업종 마스터) 읽는 법</div>
+                  <h4>업종 코드 체계 읽기</h4>
+                  <p>• <code>CS100010</code> = 커피-음료 (카페 업종)<br>• <code>CS100001~CS100009</code> = 주요 음식점 업종 (한식, 중식, 일식, 양식, 제과점 등)으로 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">📍 5. trade_area (상권정보) 읽는 법</div>
+                  <h4>상권 명칭 및 지리 공간 읽기</h4>
+                  <p>• <code>상권_코드_명</code>, <code>자치구_코드_명</code>, <code>행정동_코드_명</code> 으로 공간 위치를 읽습니다.<br>• <code>상권_구분_코드_명</code> 으로 골목상권 vs 발달상권 vs 관광특구를 구별합니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">📈 6. change_index (변화지표) 읽는 법</div>
+                  <h4>상권 전체 영업 수명 읽기</h4>
+                  <p>• <code>운영_영업_개월_평균</code> 은 카페 전용이 아닌 <strong>"상권 전체 점포 평균 영업기간"</strong>으로 읽어야 합니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">🏢 7. worker_pop (직장인구) 읽는 법</div>
+                  <h4>오피스 출근 배후 인구 읽기</h4>
+                  <p>• 상권 사업장에 출근하는 <code>총_직장_인구_수</code> 와 2030 직장인 비중으로 오피스 타깃 수요를 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">🏠 8. resident_pop (상주인구) 읽는 법</div>
+                  <h4>주거 거주 배후 인구 읽기</h4>
+                  <p>• 상권 거주 <code>총_상주인구_수</code> 및 <code>총_가구_수</code>, 아파트가구 비중으로 주거지 배후 수요를 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">🏬 9. facility (집객시설) 읽는 법</div>
+                  <h4>교통 및 공공 집객력 읽기</h4>
+                  <p>• <code>지하철_역_수</code>, <code>버스_정거장_수</code>, 관공서/학교 수로 역세권 유인력을 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">🏘 10. apartment (아파트) 읽는 법</div>
+                  <h4>배후 아파트 시가 및 세대 읽기</h4>
+                  <p>• <code>아파트_단지_수</code> 및 <code>아파트_평균_시가</code> 로 배후 거주민의 소득/구매력을 읽습니다.</p>
+                </div>
+
+                <div class="lit-card">
+                  <div class="lit-num">💳 11. consumption (소비지출) 읽는 법</div>
+                  <h4>가구 항목별 소비 성향 읽기</h4>
+                  <p>• <code>지출_총금액</code> 중 <code>식료품</code>, <code>여가</code>, <code>문화</code> 지출 비중으로 가구 소비 성향을 읽습니다.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 2: 가설에 따른 데이터 읽는 법 -->
+          <section id="section-hypothesis-reading" class="content-section">
+            <div class="section-title">
+              <h2>🗺️ 가설에 따른 데이터 읽는 법 (Hypothesis Reading Guide)</h2>
+              <p>우리가 탐색하려는 3가지 핵심 질문에 대해 여러 테이블을 결합하여 데이터를 읽어내는 구체적인 방법입니다.</p>
+            </div>
+
+            <div class="hypothesis-maps-grid">
+              
+              <!-- H1 Data Reading -->
+              <div class="h-map-card card">
+                <div class="h-map-header">
+                  <span class="h-num">가설 1</span>
+                  <h3>2030 유동인구 × 카페 매출 데이터를 읽는 법</h3>
+                </div>
+                <div class="h-statement">
+                  “2030 유동인구 비중이 높은 상권일수록 카페 점포당 평균 매출이 높은가?”
+                </div>
+                <div class="h-map-body">
+                  <div class="map-group">
+                    <strong>데이터 연결 및 읽기 순서:</strong>
+                    <ol style="padding-left:20px; display:flex; flex-direction:column; gap:6px;">
+                      <li><code>foot_traffic</code>에서 <code>(20대 + 30대 유동인구) / 총 유동인구 × 100</code> 으로 상권의 <strong>2030 유동인구 비중 (%)</strong>을 읽습니다.</li>
+                      <li><code>sales</code>에서 카페 업종(CS100010)의 <code>당월_매출_금액</code>을 읽고, <code>store</code>에서 카페 <code>점포_수</code>를 읽습니다.</li>
+                      <li>두 테이블을 결합하여 <code>카페 당월 매출금액 / 점포 수</code>로 <strong>점포당 평균 매출</strong>을 읽습니다.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <!-- H2 Data Reading -->
+              <div class="h-map-card card">
+                <div class="h-map-header">
+                  <span class="h-num">가설 2</span>
+                  <h3>프랜차이즈 비율 × 카페 폐업률 & 영업기간 데이터를 읽는 법</h3>
+                </div>
+                <div class="h-statement">
+                  “프랜차이즈 카페 비율이 높으면 카페 폐업률이 커지는가?”
+                </div>
+                <div class="h-map-body">
+                  <div class="map-group">
+                    <strong>데이터 연결 및 읽기 순서:</strong>
+                    <ol style="padding-left:20px; display:flex; flex-direction:column; gap:6px;">
+                      <li><code>store</code>에서 카페 업종(CS100010)의 <code>프랜차이즈_점포_수 / 점포_수 × 100</code> 으로 <strong>프랜차이즈 비율 (%)</strong>을 읽습니다.</li>
+                      <li>동일한 <code>store</code> 테이블에서 카페 업종의 <code>폐업_률 (%)</code> 을 가져옵니다.</li>
+                      <li><code>change_index</code> 테이블의 <code>운영_영업_개월_평균</code> 을 가져와 연결합니다. (단, <strong>"상권 전체 평균 영업기간"</strong>으로 읽음)</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <!-- H3 Data Reading -->
+              <div class="h-map-card card">
+                <div class="h-map-header">
+                  <span class="h-num">가설 3</span>
+                  <h3>음식점 매출 × 카페 오후 매출 (식후 소비 연계) 데이터를 읽는 법</h3>
+                </div>
+                <div class="h-statement">
+                  “점심 외식 매출이 높은 상권에서 오후 카페 매출도 함께 높은가?”
+                </div>
+                <div class="h-map-body">
+                  <div class="map-group">
+                    <strong>데이터 연결 및 읽기 순서:</strong>
+                    <ol style="padding-left:20px; display:flex; flex-direction:column; gap:6px;">
+                      <li><code>sales</code>에서 주요 음식점 업종(CS100001~CS100009)의 <code>시간대_11_14_매출_금액</code>(점심 외식 매출)을 상권별로 합산해 읽습니다.</li>
+                      <li>동일 <code>sales</code>에서 카페 업종(CS100010)의 <code>시간대_14_17_매출_금액</code>(오후 카페 매출)을 읽습니다.</li>
+                      <li>상권 코드로 두 매출을 결합하여, 점심 외식 매출 규모와 오후 카페 매출 규모 간의 식후 연계 패턴을 읽어냅니다.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Section 3: 11개 테이블 종합 비교표 -->
+          <section id="section-matrix" class="content-section">
+            <div class="section-title">
+              <h2>📊 11개 테이블 종합 비교표 (Table Comparison Matrix)</h2>
+              <p>11개 전체 테이블의 한 행의 의미(Grain), 시간/지역/업종 기준, 핵심 데이터, 주요 JOIN Key, 대표 분석 질문을 한눈에 비교합니다.</p>
+            </div>
+
+            <div class="matrix-card card">
+              <div class="table-container">
+                <table class="dict-table matrix-table" id="table-comparison-matrix">
+                  <thead>
+                    <tr>
+                      <th>테이블명</th>
+                      <th>한글명</th>
+                      <th>한 행의 의미 (Grain)</th>
+                      <th>시간 기준</th>
+                      <th>지역 기준</th>
+                      <th>업종 구분</th>
+                      <th>핵심 데이터</th>
+                      <th>주요 JOIN Key</th>
+                      <th>대표 분석 질문</th>
+                    </tr>
+                  </thead>
+                  <tbody id="matrix-table-body">
+                    <!-- Dynamically populated -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 4: 전체 데이터 구조 (11개 요약 카드) -->
+          <section id="section-structure" class="content-section">
+            <div class="section-title">
+              <h2>🗂️ 전체 데이터 구조 (11개 요약 카드)</h2>
+              <p>각 카드를 클릭하면 해당 테이블의 10단계 상세 교안 및 실시간 데이터 한 행 읽기 화면으로 이동합니다.</p>
+            </div>
+            
+            <div class="table-cards-grid" id="table-cards-container">
+              <!-- Dynamically populated -->
+            </div>
+          </section>
+
+          <!-- Section 5: 테이블 상세 교안 (10단계 상세 교재) -->
+          <section id="section-textbook" class="content-section">
+            <div class="section-title">
+              <h2>📖 테이블 상세 교안 (10단계 상세 교재)</h2>
+              <p>선택한 테이블의 현실 의미, Grain 예시, 컬럼 분류, 전체 사전, 볼 수 있는 것/없는 것, 질문, 헷갈리는 컬럼, JOIN 관계 및 <strong>실제 데이터 한 행 읽기</strong>를 학습합니다.</p>
+            </div>
+
+            <div class="dictionary-layout">
+              <div class="table-tabs-bar" id="dict-tabs">
+                <!-- 11 table selection tabs -->
+              </div>
+
+              <div class="dict-detail-card card" id="textbook-detail-container">
+                <!-- Selected table 10-step educational guide dynamically rendered -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 6: ERD Diagram -->
+          <section id="section-erd" class="content-section">
+            <div class="section-title">
+              <h2>🕸️ ERD / 테이블 관계도 (Interactive Relationship Map)</h2>
+              <p>테이블 노드를 클릭하면 결합 가능한 테이블과 <strong>JOIN KEY</strong>가 강조 표시됩니다.</p>
+            </div>
+
+            <div class="erd-box card">
+              <div class="erd-controls">
+                <span class="erd-legend-item"><span class="legend-dot sales"></span> 매출 계열</span>
+                <span class="erd-legend-item"><span class="legend-dot population"></span> 인구/유동인구</span>
+                <span class="erd-legend-item"><span class="legend-dot store"></span> 점포 계열</span>
+                <span class="erd-legend-item"><span class="legend-dot location"></span> 지역/집객시설</span>
+                <span class="erd-legend-item"><span class="legend-dot master"></span> 마스터/기준정보</span>
+                <button id="btn-reset-erd" class="btn btn-sm btn-secondary">선택 초기화</button>
+              </div>
+
+              <div class="erd-diagram-container">
+                <div class="erd-grid-diagram" id="erd-diagram">
+                  <!-- ERD Nodes -->
+                </div>
+              </div>
+
+              <div id="erd-info-panel" class="erd-info-panel">
+                <div class="info-placeholder">💡 위 ERD 관계도의 테이블 노드를 클릭하여 JOIN KEY와 결합 가능한 테이블을 확인하세요.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Section 7: JOIN Manual & SQL Code Guide -->
+          <section id="section-join" class="content-section">
+            <div class="section-title">
+              <h2>🔗 JOIN 사용설명서 & SQL 쿼리 가이드</h2>
+              <p>테이블을 올바르게 결합하는 패턴과 복사 가능한 SQL 예시 코드를 제공합니다.</p>
+            </div>
+
+            <div class="join-guide-grid">
+              
+              <!-- Pattern 1 -->
+              <div class="join-card card">
+                <div class="join-header">
+                  <span class="pattern-badge">패턴 1</span>
+                  <h3>카페 매출 + 점포 분석 결합 (sales + store)</h3>
+                </div>
+                <div class="join-body">
+                  <div class="join-visual-flow">
+                    <span class="j-node">sales (매출)</span>
+                    <span class="j-arrow">➕ JOIN</span>
+                    <span class="j-node">store (점포)</span>
+                  </div>
+                  <div class="join-key-tags">
+                    <span class="tag-key">기준_년분기_코드</span>
+                    <span class="tag-key">상권_코드</span>
+                    <span class="tag-key">서비스_업종_코드</span>
+                  </div>
+                  
+                  <div class="sql-box">
+                    <div class="sql-header">
+                      <span>SQL 코드 예시 (카페 CS100010)</span>
+                      <button class="btn-copy-sql" data-code="sql-p1">📋 복사</button>
+                    </div>
+                    <pre><code id="sql-p1">SELECT 
+  s.기준_년분기_코드,
+  s.상권_코드,
+  s.당월_매출_금액 AS cafe_sales,
+  st.점포_수 AS store_count,
+  s.당월_매출_금액 / st.점포_수 AS sales_per_store
+FROM sales s
+JOIN store st 
+  ON s.기준_년분기_코드 = st.기준_년분기_코드
+ AND s.상권_코드 = st.상권_코드
+ AND s.서비스_업종_코드 = st.서비스_업종_코드
+WHERE s.서비스_업종_코드 = 'CS100010';</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pattern 2 -->
+              <div class="join-card card">
+                <div class="join-header">
+                  <span class="pattern-badge">패턴 2</span>
+                  <h3>카페 매출 + 2030 유동인구 결합 (sales + foot_traffic)</h3>
+                </div>
+                <div class="join-body">
+                  <div class="join-visual-flow">
+                    <span class="j-node">sales (매출)</span>
+                    <span class="j-arrow">➕ JOIN</span>
+                    <span class="j-node">foot_traffic (유동인구)</span>
+                  </div>
+                  <div class="join-key-tags">
+                    <span class="tag-key">기준_년분기_코드</span>
+                    <span class="tag-key">상권_코드</span>
+                  </div>
+                  
+                  <div class="sql-box">
+                    <div class="sql-header">
+                      <span>SQL 코드 예시</span>
+                      <button class="btn-copy-sql" data-code="sql-p2">📋 복사</button>
+                    </div>
+                    <pre><code id="sql-p2">SELECT 
+  s.상권_코드,
+  s.당월_매출_금액 AS cafe_sales,
+  ft.총_유동인구_수,
+  (ft.연령대_20_유동인구_수 + ft.연령대_30_유동인구_수) * 100.0 / ft.총_유동인구_수 AS ratio_2030
+FROM sales s
+JOIN foot_traffic ft 
+  ON s.기준_년분기_코드 = ft.기준_년분기_코드
+ AND s.상권_코드 = ft.상권_코드
+WHERE s.서비스_업종_코드 = 'CS100010';</code></pre>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Section 8: Formula Dictionary -->
+          <section id="section-formulas" class="content-section">
+            <div class="section-title">
+              <h2>🧮 분석 공식 모음 (Data Formula Dictionary)</h2>
+              <p>분석에 필요한 주요 파생지표 계산 공식 모음입니다.</p>
+            </div>
+
+            <div class="formulas-grid">
+              
+              <div class="formula-card card">
+                <span class="f-category">유동인구</span>
+                <h3>2030 유동인구 비중 (%)</h3>
+                <div class="f-expression">
+                  <code>(연령대_20_유동인구_수 + 연령대_30_유동인구_수) ÷ 총_유동인구_수 × 100</code>
+                </div>
+                <div class="f-meta">
+                  <div><strong>필요 테이블:</strong> <code>foot_traffic</code></div>
+                  <div><strong>목적:</strong> 상권 청년층 밀집도 측정</div>
+                </div>
+              </div>
+
+              <div class="formula-card card">
+                <span class="f-category">수익성</span>
+                <h3>점포당 평균 매출 (원)</h3>
+                <div class="f-expression">
+                  <code>카페 당월_매출_금액 ÷ 카페 점포_수</code>
+                </div>
+                <div class="f-meta">
+                  <div><strong>필요 테이블:</strong> <code>sales</code>, <code>store</code></div>
+                  <div><strong>목적:</strong> 개별 점포 수준의 매출 효율성 산출</div>
+                </div>
+              </div>
+
+              <div class="formula-card card">
+                <span class="f-category">경쟁 강도</span>
+                <h3>프랜차이즈 점포 비율 (%)</h3>
+                <div class="f-expression">
+                  <code>프랜차이즈_점포_수 ÷ 전체 점포_수 × 100</code>
+                </div>
+                <div class="f-meta">
+                  <div><strong>필요 테이블:</strong> <code>store</code></div>
+                  <div><strong>목적:</strong> 프랜차이즈 과밀도 및 경쟁 리스크 평가</div>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+
+      </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="guide-footer">
+      <p>서울 상권분석 데이터 교안 & 사용설명서 (단일 HTML 공유버전) | 데이터 출처: 서울시 열린데이터 광장 (CS100010 커피-음료)</p>
+    </footer>
+  </div>
+
+  <!-- Embedded Complete JavaScript Engine & Datasets -->
+  <script>
+    // Embedded Fallback Dataset for Instant Zero-Delay Rendering
+    const DEFAULT_H3_DATA = {
+      quarter: '20254',
+      kpis: {
+        totalAreas: 890,
+        avgLunchSales: 3425972229,
+        avgAfternoonCafeSales: 374457982,
+        avgRatio: 16.68,
+        top1Name: '명동 남대문 북창동 다동 무교동 관광특구',
+        top1Ratio: 9.12
+      },
+      top10Data: [
+        { name: '명동 남대문 북창동 다동 무교동 관광특구', gu: '중구', restLunchIn100M: 1188.2, cafeAfternoonIn100M: 108.3, ratioPercent: 9.12 },
+        { name: '홍대입구역(홍대)', gu: '마포구', restLunchIn100M: 187.9, cafeAfternoonIn100M: 64.5, ratioPercent: 34.33 },
+        { name: '시청역_8번', gu: '중구', restLunchIn100M: 128.7, cafeAfternoonIn100M: 62.7, ratioPercent: 48.77 },
+        { name: '강남역', gu: '서초구', restLunchIn100M: 469.7, cafeAfternoonIn100M: 60.2, ratioPercent: 12.82 },
+        { name: '잠실 관광특구', gu: '송파구', restLunchIn100M: 322.1, cafeAfternoonIn100M: 57.8, ratioPercent: 17.95 },
+        { name: '명동(명동거리)', gu: '중구', restLunchIn100M: 263.0, cafeAfternoonIn100M: 55.5, ratioPercent: 21.11 },
+        { name: '북촌(안국역)', gu: '종로구', restLunchIn100M: 172.5, cafeAfternoonIn100M: 51.9, ratioPercent: 30.08 },
+        { name: '연남동(홍대)', gu: '마포구', restLunchIn100M: 126.6, cafeAfternoonIn100M: 51.5, ratioPercent: 40.69 },
+        { name: '대학로(혜화역)', gu: '종로구', restLunchIn100M: 163.1, cafeAfternoonIn100M: 46.8, ratioPercent: 28.67 },
+        { name: '삼성역', gu: '강남구', restLunchIn100M: 269.6, cafeAfternoonIn100M: 45.7, ratioPercent: 16.96 }
+      ],
+      scatterData: [
+        { x: 1188.2, y: 108.3, name: '명동 남대문 북창동 관광특구', gu: '중구', ratio: 9.12 },
+        { x: 187.9, y: 64.5, name: '홍대입구역(홍대)', gu: '마포구', ratio: 34.33 },
+        { x: 128.7, y: 62.7, name: '시청역_8번', gu: '중구', ratio: 48.77 },
+        { x: 469.7, y: 60.2, name: '강남역', gu: '서초구', ratio: 12.82 },
+        { x: 322.1, y: 57.8, name: '잠실 관광특구', gu: '송파구', ratio: 17.95 },
+        { x: 263.0, y: 55.5, name: '명동(명동거리)', gu: '중구', ratio: 21.11 },
+        { x: 172.5, y: 51.9, name: '북촌(안국역)', gu: '종로구', ratio: 30.08 },
+        { x: 126.6, y: 51.5, name: '연남동(홍대)', gu: '마포구', ratio: 40.69 },
+        { x: 163.1, y: 46.8, name: '대학로(혜화역)', gu: '종로구', ratio: 28.67 },
+        { x: 269.6, y: 45.7, name: '삼성역', gu: '강남구', ratio: 16.96 },
+        { x: 95.4, y: 38.2, name: '성수역', gu: '성동구', ratio: 40.04 },
+        { x: 88.2, y: 32.1, name: '가로수길', gu: '강남구', ratio: 36.39 },
+        { x: 142.0, y: 41.5, name: '신촌역', gu: '서대문구', ratio: 29.23 },
+        { x: 110.5, y: 35.8, name: '건대입구역', gu: '광진구', ratio: 32.40 },
+        { x: 75.3, y: 28.4, name: '이태원역', gu: '용산구', ratio: 37.72 }
+      ],
+      rows: [
+        { code: 3001492, name: '명동 남대문 북창동 다동 무교동 관광특구', gu: '중구', restLunchSales: 118818828768, cafeAfternoonSales: 10834362694, ratioPercent: 9.12 },
+        { code: 3120021, name: '시청역_8번', gu: '중구', restLunchSales: 12865301498, cafeAfternoonSales: 6274767176, ratioPercent: 48.77 },
+        { code: 3120104, name: '연남동(홍대)', gu: '마포구', restLunchSales: 12657493276, cafeAfternoonSales: 5150818066, ratioPercent: 40.69 },
+        { code: 3120103, name: '홍대입구역(홍대)', gu: '마포구', restLunchSales: 18786368934, cafeAfternoonSales: 6449993912, ratioPercent: 34.33 },
+        { code: 3120007, name: '북촌(안국역)', gu: '종로구', restLunchSales: 17249834820, cafeAfternoonSales: 5189138968, ratioPercent: 30.08 },
+        { code: 3120012, name: '대학로(혜화역)', gu: '종로구', restLunchSales: 16305732344, cafeAfternoonSales: 4675333824, ratioPercent: 28.67 },
+        { code: 3120028, name: '명동(명동거리)', gu: '중구', restLunchSales: 26303778070, cafeAfternoonSales: 5552368574, ratioPercent: 21.11 },
+        { code: 3001495, name: '잠실 관광특구', gu: '송파구', restLunchSales: 32208926156, cafeAfternoonSales: 5780235138, ratioPercent: 17.95 },
+        { code: 3120222, name: '삼성역', gu: '강남구', restLunchSales: 26963798650, cafeAfternoonSales: 4571992792, ratioPercent: 16.96 },
+        { code: 3120189, name: '강남역', gu: '서초구', restLunchSales: 46966502178, cafeAfternoonSales: 6023403136, ratioPercent: 12.82 }
+      ]
+    };
+
+    // Bulletproof Catalog Metadata
+    let catalogData = [
+      {
+        name: 'sales',
+        koreanName: '상권 매출 데이터',
+        category: 'sales',
+        icon: '💰',
+        catchphrase: '“누가, 언제, 어떤 업종에서 돈을 쓰는가?”',
+        summaryTags: ['매출액', '매출건수', '연령대', '성별', '시간대', '요일'],
+        overview: '서울 상권별 서비스 업종의 매출 정보를 분기 단위로 저장한 대표적인 매출 실적 테이블입니다. 카페, 음식점 등 업종별 총매출뿐만 아니라 성별·연령대별·요일별·시간대별 상세 소비 구조를 파악할 수 있습니다.',
+        grain: '기준 분기 × 상권 × 서비스 업종',
+        grainExamples: [
+          '같은 이태원 상권이라도 "커피-음료"와 "한식음식점"은 서로 다른 행(Row)으로 저장됩니다.',
+          '같은 카페 업종이라도 "2024년 3분기"와 "2024년 4분기"는 별개의 행(Row)입니다.'
+        ],
+        keys: [
+          { name: '기준_년분기_코드', role: '언제의 데이터인지 시간 단위를 구분합니다 (예: 20244).' },
+          { name: '상권_코드', role: '어느 상권에서 발생한 매출인지 지리 단위를 구분합니다 (예: 3001491).' },
+          { name: '서비스_업종_코드', role: '어떤 업종의 매출인지 카테고리를 구분합니다 (예: CS100010).' }
+        ],
+        columnGroups: [
+          { groupName: '① 기본 식별 정보', columns: ['기준_년분기_코드', '상권_코드', '서비스_업종_코드'], insight: '데이터의 시간, 공간, 업종 기준을 정의합니다.' },
+          { groupName: '② 전체 매출 실적', columns: ['당월_매출_금액', '당월_매출_건수'], insight: '상권·업종의 총 매출 규모 및 객단가를 추산합니다.' },
+          { groupName: '③ 요일별 매출', columns: ['주중_매출_금액', '주말_매출_금액', '월요일_매출_금액', '화요일_매출_금액', '수요일_매출_금액', '목요일_매출_금액', '금요일_매출_금액', '토요일_매출_금액', '일요일_매출_금액'], insight: '평일 오피스 상권인지 주말 나들이 상권인지 소비 주기를 비교합니다.' },
+          { groupName: '④ 시간대별 매출', columns: ['시간대_00_06_매출_금액', '시간대_06_11_매출_금액', '시간대_11_14_매출_금액', '시간대_14_17_매출_금액', '시간대_17_21_매출_금액', '시간대_21_24_매출_금액'], insight: '점심 외식(11~14시) 및 오후 카페(14~17시) 등 소비 골든 타임을 확인합니다.' },
+          { groupName: '⑤ 성별/연령별 매출', columns: ['남성_매출_금액', '여성_매출_금액', '연령대_10_매출_금액', '연령대_20_매출_금액', '연령대_30_매출_금액', '연령대_40_매출_금액', '연령대_50_매출_금액', '연령대_60_이상_매출_금액'], insight: '2030 젊은 타깃층의 소비 기여도를 분석합니다.' }
+        ],
+        columns: [
+          { name: '기준_년분기_코드', meaning: '데이터 기준 분기 (연도+분기)', type: 'TEXT', unit: '코드', example: '20244', usage: '시계열 추이 분석', tagType: 'key' },
+          { name: '상권_코드', meaning: '상권 고유 식별 코드', type: 'INTEGER', unit: '코드', example: '3001491', usage: 'trade_area JOIN', tagType: 'key' },
+          { name: '서비스_업종_코드', meaning: '업종 고유 식별 코드', type: 'TEXT', unit: '코드', example: 'CS100010', usage: '카페 필터링 (CS100010)', tagType: 'key' },
+          { name: '당월_매출_금액', meaning: '해당 분기 월평균 추정 매출액', type: 'REAL', unit: '원', example: '6,414,663,587', usage: '상권 매출 규모 비교', tagType: 'metric' },
+          { name: '당월_매출_건수', meaning: '해당 분기 월평균 결제 건수', type: 'REAL', unit: '건', example: '150,612', usage: '평균 객단가 계산', tagType: 'metric' },
+          { name: '시간대_11_14_매출_금액', meaning: '점심시간 (11시~14시) 매출액', type: 'REAL', unit: '원', example: '1,500,000,000', usage: '점심 외식 매출 분석', tagType: 'time' },
+          { name: '시간대_14_17_매출_금액', meaning: '오후시간 (14시~17시) 매출액', type: 'REAL', unit: '원', example: '1,200,000,000', usage: '식후 카페 소비 연계 분석', tagType: 'time' },
+          { name: '연령대_20_매출_금액', meaning: '20대 소비자의 매출 금액', type: 'REAL', unit: '원', example: '2,100,000,000', usage: '20대 소비 기여도 분석', tagType: 'calc' },
+          { name: '연령대_30_매출_금액', meaning: '30대 소비자의 매출 금액', type: 'REAL', unit: '원', example: '1,800,000,000', usage: '30대 소비 기여도 분석', tagType: 'calc' }
+        ],
+        confusingBox: {
+          title: '당월_매출_금액 vs 당월_매출_건수',
+          desc: '`당월_매출_금액`은 실제 발생한 결제 금액 총합(원)이며, `당월_매출_건수`는 결제 횟수(건)입니다. 두 컬럼을 나눈 `당월_매출_금액 / 당월_매출_건수`로 해당 업종의 평균 객단가를 계산합니다.'
+        },
+        canSee: ['상권별 카페/음식점 매출 규모 비교', '20대 및 30대 소비자의 카페 매출 기여도', '점심시간 및 오후시간 매출 비율'],
+        cannotSee: ['유동인구 수 → foot_traffic 필요', '상권 내 카페 점포 수 → store 필요'],
+        questions: ['어느 상권의 카페 당월 매출이 가장 높은가?'],
+        joins: [{ target: 'store', key: '기준_년분기_코드 + 상권_코드 + 서비스_업종_코드', purpose: '점포당 평균 매출 산출' }]
+      },
+      {
+        name: 'foot_traffic',
+        koreanName: '유동인구 데이터',
+        category: 'population',
+        icon: '👥',
+        catchphrase: '“누가, 언제 이 상권을 지나고 있는가?”',
+        summaryTags: ['총유동인구', '2030유동인구'],
+        overview: '상권 영역 내에 측정된 보행자 통행 유동인구 수 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['유동인구는 업종 구분이 없는 상권 고유의 통행자 수입니다.'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 유동인구', columns: ['총_유동인구_수'], insight: '보행 인구' }],
+        columns: [{ name: '총_유동인구_수', meaning: '총 유동인구 수', type: 'REAL', unit: '명', example: '1,747,889', usage: '보행 규모', tagType: 'metric' }],
+        confusingBox: { title: '유동인구 vs 상주인구', desc: '유동인구는 상권 보행자 수입니다.' },
+        canSee: ['상권별 2030 유동인구 비중'],
+        cannotSee: ['카페 매출액 → sales 필요'],
+        questions: ['2030 유동인구 비중이 높은 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '유동인구와 매출 연결' }]
+      },
+      {
+        name: 'store',
+        koreanName: '점포 데이터',
+        category: 'store',
+        icon: '🏪',
+        catchphrase: '“이 상권에 어떤 점포가 얼마나 있고 생기고 사라지는가?”',
+        summaryTags: ['점포수', '프랜차이즈수', '폐업률'],
+        overview: '상권별·업종별 영업 점포 수 및 프랜차이즈 비중 데이터입니다.',
+        grain: '기준 분기 × 상권 × 서비스 업종',
+        grainExamples: ['상권별 분기 및 업종별 점포 수 기록입니다.'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }, { name: '서비스_업종_코드', role: '업종' }],
+        columnGroups: [{ groupName: '① 점포 현황', columns: ['점포_수', '프랜차이즈_점포_수'], insight: '경쟁 현황' }],
+        columns: [{ name: '점포_수', meaning: '영업 중인 점포 수', type: 'INTEGER', unit: '개', example: '117', usage: '점포당 매출 산출', tagType: 'metric' }],
+        confusingBox: { title: '점포_수', desc: '해당 표준 업종 점포 수입니다.' },
+        canSee: ['상권별 카페 점포 수'],
+        cannotSee: ['매출액 → sales 필요'],
+        questions: ['프랜차이즈 비율이 높은 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '점포당 매출 산출' }]
+      },
+      {
+        name: 'industry',
+        koreanName: '서비스 업종 데이터',
+        category: 'master',
+        icon: '☕',
+        catchphrase: '“상권분석에서 분류하는 업종 코드와 이름은 무엇인가?”',
+        summaryTags: ['업종코드', '업종명'],
+        overview: '서울시 상권분석 서비스 업종 마스터입니다.',
+        grain: '서비스 업종 코드',
+        grainExamples: ['CS100010 은 "커피-음료" 업종 1개 행입니다.'],
+        keys: [{ name: '서비스_업종_코드', role: '업종 코드' }],
+        columnGroups: [{ groupName: '① 업종 마스터', columns: ['서비스_업종_코드'], insight: '업종 매핑' }],
+        columns: [{ name: '서비스_업종_코드', meaning: '업종 코드', type: 'TEXT', unit: '코드', example: 'CS100010', usage: 'JOIN 키', tagType: 'key' }],
+        confusingBox: { title: 'CS100010 코드', desc: '커피-음료 카페 업종 코드입니다.' },
+        canSee: ['업종명 매핑'],
+        cannotSee: ['통계 수치'],
+        questions: ['음식점 업종 코드는?'],
+        joins: [{ target: 'sales', key: '서비스_업종_코드', purpose: '한글 업종명 결합' }]
+      },
+      {
+        name: 'trade_area',
+        koreanName: '상권 기본정보',
+        category: 'location',
+        icon: '📍',
+        catchphrase: '“상권이 실제로 어디에 위치하고 어떤 이름을 가지는가?”',
+        summaryTags: ['상권명', '자치구'],
+        overview: '서울시 1,650개 상권의 기본정보 마스터입니다.',
+        grain: '상권 코드',
+        grainExamples: ['상권 3001491 은 이태원 관광특구 1개 행입니다.'],
+        keys: [{ name: '상권_코드', role: '상권 코드' }],
+        columnGroups: [{ groupName: '① 상권 식별', columns: ['상권_코드_명'], insight: '지역 구분' }],
+        columns: [{ name: '상권_코드_명', meaning: '상권 이름', type: 'TEXT', unit: '이름', example: '이태원 관광특구', usage: '상권명 표시', tagType: 'location' }],
+        confusingBox: { title: '행정동 정보', desc: '주민센터 기준 행정동입니다.' },
+        canSee: ['상권 한글 이름'],
+        cannotSee: ['매출 데이터'],
+        questions: ['마포구 골목상권 목록은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '상권명 결합' }]
+      },
+      {
+        name: 'change_index',
+        koreanName: '상권 변화지표',
+        category: 'master',
+        icon: '📈',
+        catchphrase: '“이 상권의 변화 상태와 점포 생존 수명은 어떠한가?”',
+        summaryTags: ['변화지표', '평균영업개월'],
+        overview: '상권 전체 점포들의 평균 영업 지속 개월 수 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권 전체 기준 수치입니다.'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 영업기간', columns: ['운영_영업_개월_평균'], insight: '상권 수명' }],
+        columns: [{ name: '운영_영업_개월_평균', meaning: '상권 평균 영업 기간', type: 'REAL', unit: '개월', example: '90.0', usage: '생존 수명', tagType: 'metric' }],
+        confusingBox: { title: '⚠️ 표기 주의사항', desc: '상권 전체 평균 영업기간입니다.' },
+        canSee: ['상권 점포 평균 영업기간'],
+        cannotSee: ['카페 전용 영업기간'],
+        questions: ['영업기간이 긴 안정적 상권은?'],
+        joins: [{ target: 'store', key: '상권_코드', purpose: '생존기간 비교' }]
+      },
+      {
+        name: 'worker_pop',
+        koreanName: '직장인구 데이터',
+        category: 'population',
+        icon: '🏢',
+        catchphrase: '“이 상권에는 어떤 직장인들이 근무하는가?”',
+        summaryTags: ['총직장인구'],
+        overview: '상권 출근 직장인 통계 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권별 분기 1개 행'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 직장인구', columns: ['총_직장_인구_수'], insight: '오피스 배후' }],
+        columns: [{ name: '총_직장_인구_수', meaning: '직장인 수', type: 'REAL', unit: '명', example: '33,216', usage: '오피스 규모', tagType: 'metric' }],
+        confusingBox: { title: '직장인구', desc: '고용 사업장 인원입니다.' },
+        canSee: ['직장인 수'],
+        cannotSee: ['카페 지출액'],
+        questions: ['2030 직장인이 많은 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '직장인과 매출 연결' }]
+      },
+      {
+        name: 'resident_pop',
+        koreanName: '상주인구 데이터',
+        category: 'population',
+        icon: '🏠',
+        catchphrase: '“이 상권에는 어떤 사람들이 살고 있는가?”',
+        summaryTags: ['총상주인구'],
+        overview: '상권 거주 상주인구 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권별 분기 1개 행'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 상주인구', columns: ['총_상주인구_수'], insight: '주거 배후' }],
+        columns: [{ name: '총_상주인구_수', meaning: '상주인구 수', type: 'REAL', unit: '명', example: '5,083', usage: '주거 규모', tagType: 'metric' }],
+        confusingBox: { title: '상주인구', desc: '거주자 기반 인구입니다.' },
+        canSee: ['거주 인구 수'],
+        cannotSee: ['카페 방문률'],
+        questions: ['상주인구가 탄탄한 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '주거인구와 매출 연결' }]
+      },
+      {
+        name: 'facility',
+        koreanName: '집객시설 데이터',
+        category: 'location',
+        icon: '🏬',
+        catchphrase: '“이 상권 주변에 어떤 집객시설과 교통이 있는가?”',
+        summaryTags: ['지하철역수'],
+        overview: '상권 내 주요 관공서, 학교, 지하철역 수 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권별 분기 1개 행'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 집객시설', columns: ['지하철_역_수'], insight: '역세권' }],
+        columns: [{ name: '지하철_역_수', meaning: '지하철역 수', type: 'REAL', unit: '개', example: '1', usage: '역세권 구분', tagType: 'filter' }],
+        confusingBox: { title: '집객시설 수', desc: '역사와 공공기관 총 개수입니다.' },
+        canSee: ['지하철역 수'],
+        cannotSee: ['승하차 인원'],
+        questions: ['역세권 상권은 어디인가?'],
+        joins: [{ target: 'trade_area', key: '상권_코드', purpose: '입지 분석' }]
+      },
+      {
+        name: 'apartment',
+        koreanName: '아파트 단지 데이터',
+        category: 'location',
+        icon: '🏘',
+        catchphrase: '“상권 배후 아파트 단지와 시가는 어떠한가?”',
+        summaryTags: ['평균시가'],
+        overview: '상권 인근 아파트 평균 시가 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권별 분기 1개 행'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 아파트 시가', columns: ['아파트_평균_시가'], insight: '구매력' }],
+        columns: [{ name: '아파트_평균_시가', meaning: '평균 시가', type: 'REAL', unit: '원', example: '414,130,804', usage: '구매력 지표', tagType: 'metric' }],
+        confusingBox: { title: '아파트 세대 수', desc: '아파트 거주 세대 수입니다.' },
+        canSee: ['배후 아파트 평균 시가'],
+        cannotSee: ['아파트 주민 지출액'],
+        questions: ['고소득 아파트 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '구매력 비교' }]
+      },
+      {
+        name: 'consumption',
+        koreanName: '소비지출 데이터',
+        category: 'sales',
+        icon: '💳',
+        catchphrase: '“상권 가구들이 어떤 항목에 돈을 쓰는가?”',
+        summaryTags: ['지출총액'],
+        overview: '상권 가구들의 항목별 소비지출 데이터입니다.',
+        grain: '기준 분기 × 상권',
+        grainExamples: ['상권별 분기 1개 행'],
+        keys: [{ name: '기준_년분기_코드', role: '분기' }, { name: '상권_코드', role: '상권' }],
+        columnGroups: [{ groupName: '① 지출 항목', columns: ['지출_총금액'], insight: '가구 소비 성향' }],
+        columns: [{ name: '지출_총금액', meaning: '총 지출액', type: 'REAL', unit: '원', example: '3,597,923,964', usage: '지출 규모', tagType: 'metric' }],
+        confusingBox: { title: '소비지출 vs 매출액', desc: '가구 생활 지출액입니다.' },
+        canSee: ['가구 여가지출 규모'],
+        cannotSee: ['카페 매출액'],
+        questions: ['여가지출이 활발한 상권은?'],
+        joins: [{ target: 'sales', key: '상권_코드', purpose: '소비 성향 연결' }]
+      }
+    ];
+
+    let matrixData = [];
+    let hypothesis3Data = DEFAULT_H3_DATA;
+    let currentSelectedTable = 'sales';
+
+    const CAT_COLORS = {
+      sales: { name: '매출 계열', bg: '#FEF3C7', color: '#D97706' },
+      population: { name: '인구/유동인구', bg: '#DBEAFE', color: '#2563EB' },
+      store: { name: '점포 계열', bg: '#CCFBF1', color: '#0D9488' },
+      location: { name: '지역/집객시설', bg: '#EDE9FE', color: '#8B5CF6' },
+      master: { name: '기준정보/마스터', bg: '#F1F5F9', color: '#475569' }
+    };
+
+    const TAG_BADGES = {
+      key: { text: '🔑 JOIN KEY', class: 'key' },
+      metric: { text: '📊 분석지표', class: 'metric' },
+      calc: { text: '🧮 계산용', class: 'calc' },
+      filter: { text: '🔍 필터', class: 'filter' },
+      time: { text: '🕐 시간', class: 'time' },
+      location: { text: '📍 지역', class: 'location' }
+    };
+
+    let chartH3ScatterInstance = null;
+    let chartH3BarInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setupNavigation();
+      setupGlobalSearch();
+      setupSqlCopy();
+
+      // INSTANT RENDER!
+      renderAllSections();
+      renderHypothesis3Report(DEFAULT_H3_DATA);
+
+      // Async live refresh if server API is available
+      if (location.protocol.startsWith('http')) {
+        fetchCatalogData();
+        fetchComparisonMatrix();
+        fetchHypothesis3Data();
+      }
+    });
+
+    async function fetchCatalogData() {
+      try {
+        const res = await fetch('/api/catalog');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            catalogData = data;
+            renderAllSections();
+          }
+        }
+      } catch (err) { console.log('Using embedded catalog'); }
+    }
+
+    async function fetchComparisonMatrix() {
+      try {
+        const res = await fetch('/api/comparison-matrix');
+        if (res.ok) {
+          matrixData = await res.json();
+          renderComparisonMatrix();
+        }
+      } catch (err) { console.log('Using embedded matrix'); }
+    }
+
+    async function fetchHypothesis3Data() {
+      try {
+        const res = await fetch('/api/hypothesis-3');
+        if (res.ok) {
+          hypothesis3Data = await res.json();
+          renderHypothesis3Report(hypothesis3Data);
+        }
+      } catch (err) { console.log('Using embedded H3 data'); }
+    }
+
+    function renderHypothesis3Report(data) {
+      if (!data || !data.kpis) return;
+
+      const lunchIn100M = (data.kpis.avgLunchSales / 100000000).toFixed(1);
+      const afternoonIn100M = (data.kpis.avgAfternoonCafeSales / 100000000).toFixed(1);
+
+      const elLunch = document.getElementById('kpi-h3-lunch');
+      const elAfternoon = document.getElementById('kpi-h3-afternoon');
+      const elRatio = document.getElementById('kpi-h3-ratio');
+      const elTop1 = document.getElementById('kpi-h3-top1');
+      const elTop1Sub = document.getElementById('kpi-h3-top1-sub');
+
+      if (elLunch) elLunch.innerText = `${lunchIn100M}억 원`;
+      if (elAfternoon) elAfternoon.innerText = `${afternoonIn100M}억 원`;
+      if (elRatio) elRatio.innerText = `${data.kpis.avgRatio}%`;
+      if (elTop1) elTop1.innerText = data.kpis.top1Name;
+      if (elTop1Sub) elTop1Sub.innerText = `식후 전환율 ${data.kpis.top1Ratio}% (1위)`;
+
+      setTimeout(() => {
+        renderH3ScatterChart(data.scatterData || []);
+        renderH3BarChart(data.top10Data || []);
+      }, 100);
+
+      setupH3GuFilter(data.rows || []);
+      renderH3RankingTable(data.rows || [], 'ALL');
+    }
+
+    function renderH3ScatterChart(scatterData) {
+      const ctx = document.getElementById('chart-h3-scatter');
+      if (!ctx || typeof Chart === 'undefined') return;
+
+      if (chartH3ScatterInstance) chartH3ScatterInstance.destroy();
+
+      const points = scatterData.map(d => ({ x: d.x, y: d.y, name: d.name, gu: d.gu, ratio: d.ratio }));
+
+      chartH3ScatterInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: '상권별 매출 (음식점 점심 vs 카페 오후)',
+            data: points,
+            backgroundColor: 'rgba(217, 119, 6, 0.65)',
+            borderColor: '#D97706',
+            pointRadius: 6,
+            pointHoverRadius: 9
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const p = ctx.raw;
+                  return `${p.name} (${p.gu}): 점심 음식점 ${p.x}억 ➔ 오후 카페 ${p.y}억 (전환율 ${p.ratio}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { title: { display: true, text: '음식점 점심 매출 (11~14시, 억 원)', color: '#475569', font: { weight: 'bold' } }, grid: { color: '#E2E8F0' } },
+            y: { title: { display: true, text: '카페 오후 매출 (14~17시, 억 원)', color: '#475569', font: { weight: 'bold' } }, grid: { color: '#E2E8F0' } }
+          }
+        }
+      });
+    }
+
+    function renderH3BarChart(top10Data) {
+      const ctx = document.getElementById('chart-h3-bar');
+      if (!ctx || typeof Chart === 'undefined') return;
+
+      if (chartH3BarInstance) chartH3BarInstance.destroy();
+
+      const labels = top10Data.map(d => d.name.length > 10 ? d.name.substring(0, 10) + '...' : d.name);
+      const lunchValues = top10Data.map(d => d.restLunchIn100M);
+      const afternoonValues = top10Data.map(d => d.cafeAfternoonIn100M);
+
+      chartH3BarInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '음식점 점심 매출 (억 원)', data: lunchValues, backgroundColor: 'rgba(217, 119, 6, 0.85)', borderRadius: 4 },
+            { label: '카페 오후 매출 (억 원)', data: afternoonValues, backgroundColor: 'rgba(13, 148, 136, 0.85)', borderRadius: 4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { display: false } },
+            y: { title: { display: true, text: '매출액 (억 원)' }, grid: { color: '#E2E8F0' } }
+          }
+        }
+      });
+    }
+
+    function setupH3GuFilter(rows) {
+      const select = document.getElementById('h3-gu-filter');
+      if (!select) return;
+
+      const guSet = new Set(rows.map(r => r.gu).filter(Boolean));
+      const guList = Array.from(guSet).sort();
+
+      select.innerHTML = '<option value="ALL">서울 전체 자치구</option>' + 
+        guList.map(g => `<option value="${g}">${g}</option>`).join('');
+
+      select.onchange = () => renderH3RankingTable(rows, select.value);
+    }
+
+    function renderH3RankingTable(rows, filterGu) {
+      const tbody = document.getElementById('h3-ranking-tbody');
+      if (!tbody) return;
+
+      const filtered = filterGu === 'ALL' ? rows : rows.filter(r => r.gu === filterGu);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">해당 자치구 상권 데이터가 없습니다.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.slice(0, 15).map((r, idx) => {
+        const lunchIn100M = (r.restLunchSales / 100000000).toFixed(1);
+        const afternoonIn100M = (r.cafeAfternoonSales / 100000000).toFixed(1);
+        
+        let evalBadge = '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">⭐ 매우 우수</span>';
+        if (r.ratioPercent < 20) {
+          evalBadge = '<span style="background:#F1F5F9; color:#475569; padding:2px 8px; border-radius:4px; font-size:11px;">보통</span>';
+        } else if (r.ratioPercent < 30) {
+          evalBadge = '<span style="background:#DBEAFE; color:#1E40AF; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:700;">우수</span>';
+        }
+
+        return `
+          <tr>
+            <td><strong>${idx + 1}</strong></td>
+            <td><strong>${r.name}</strong></td>
+            <td>${r.gu}</td>
+            <td>${lunchIn100M}억 원</td>
+            <td><strong style="color:var(--cat-sales);">${afternoonIn100M}억 원</strong></td>
+            <td><span style="font-weight:800; color:var(--cat-pop);">${r.ratioPercent}%</span></td>
+            <td>${evalBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function setupNavigation() {
+      const navItems = document.querySelectorAll('.guide-sidebar .nav-item');
+      navItems.forEach(item => {
+        item.addEventListener('click', () => {
+          navItems.forEach(n => n.classList.remove('active'));
+          item.classList.add('active');
+        });
+      });
+    }
+
+    function renderAllSections() {
+      renderTableCardsPage1();
+      renderComparisonMatrix();
+      renderPage2ERD();
+      renderSidebarTableList();
+      renderTextbookTabs();
+      renderTextbookDetail(currentSelectedTable);
+    }
+
+    function renderTableCardsPage1() {
+      const container = document.getElementById('table-cards-container');
+      if (!container || !catalogData || catalogData.length === 0) return;
+
+      container.innerHTML = catalogData.map(t => {
+        const cat = CAT_COLORS[t.category] || CAT_COLORS.master;
+        const tagsHtml = (t.summaryTags || []).map(tag => `<span style="background:#F1F5F9; font-size:11px; padding:2px 6px; border-radius:4px; margin-right:4px;">#${tag}</span>`).join('');
+
+        return `
+          <div class="t-card" onclick="jumpToTableDetail('${t.name}')">
+            <div class="t-card-header">
+              <div class="t-card-title">
+                <span class="t-card-icon">${t.icon}</span>
+                <div>
+                  <h3>${t.name}</h3>
+                  <span style="font-size:12px; color:var(--text-muted);">${t.koreanName}</span>
+                </div>
+              </div>
+              <span class="t-card-tag" style="background-color:${cat.bg}; color:${cat.color};">${cat.name}</span>
+            </div>
+
+            <div class="t-card-catchphrase">${t.catchphrase || ''}</div>
+            <p class="t-card-desc">${t.overview}</p>
+            
+            <div class="t-card-meta">
+              <div><strong>볼 수 있는 것:</strong> ${tagsHtml}</div>
+              <div style="margin-top:4px;"><strong>Grain:</strong> ${t.grain}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function jumpToTableDetail(tableName) {
+      currentSelectedTable = tableName;
+      renderTextbookTabs();
+      renderSidebarTableList();
+      renderTextbookDetail(tableName);
+      
+      const tbSection = document.getElementById('section-textbook');
+      if (tbSection) tbSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderComparisonMatrix() {
+      const tbody = document.getElementById('matrix-table-body');
+      if (!tbody) return;
+
+      const dataToRender = (matrixData && matrixData.length > 0) ? matrixData : catalogData.map(t => ({
+        name: t.name,
+        koreanName: t.koreanName,
+        grain: t.grain,
+        timeRef: (t.keys && t.keys.some(k => k.name === '기준_년분기_코드')) ? '분기 (2021Q1~2025Q4)' : '해당 없음',
+        locRef: '상권 (1,650개)',
+        indRef: (t.keys && t.keys.some(k => k.name === '서비스_업종_코드')) ? 'O (업종별 구분)' : 'X (상권 전체)',
+        coreData: (t.summaryTags || []).slice(0, 3).join(', '),
+        joinKeys: (t.keys || []).map(k => k.name).join(' + '),
+        question: (t.questions && t.questions[0]) || '-'
+      }));
+
+      tbody.innerHTML = dataToRender.map(m => `
+        <tr>
+          <td><code>${m.name}</code></td>
+          <td><strong>${m.koreanName}</strong></td>
+          <td><span class="badge-cat" style="background:#DBEAFE; color:#1E40AF; font-size:11px; padding:2px 6px; border-radius:4px;">${m.grain}</span></td>
+          <td>${m.timeRef}</td>
+          <td>${m.locRef}</td>
+          <td>${m.indRef}</td>
+          <td>${m.coreData}</td>
+          <td><code>${m.joinKeys}</code></td>
+          <td style="font-size:12px; color:var(--text-secondary);">${m.question}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSidebarTableList() {
+      const container = document.getElementById('sidebar-table-list');
+      if (!container || !catalogData || catalogData.length === 0) return;
+
+      container.innerHTML = catalogData.map(t => {
+        const cat = CAT_COLORS[t.category] || CAT_COLORS.master;
+        const isActive = t.name === currentSelectedTable ? 'active' : '';
+        return `
+          <button class="table-nav-btn ${isActive}" onclick="jumpToTableDetail('${t.name}')">
+            <span>${t.icon} ${t.name}</span>
+            <span class="badge-cat" style="background-color:${cat.bg}; color:${cat.color};">${t.koreanName}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderTextbookTabs() {
+      const container = document.getElementById('dict-tabs');
+      if (!container || !catalogData || catalogData.length === 0) return;
+
+      container.innerHTML = catalogData.map(t => `
+        <button class="dict-tab-btn ${t.name === currentSelectedTable ? 'active' : ''}" onclick="selectTextbookTab('${t.name}')">
+          ${t.icon} ${t.name} (${t.koreanName})
+        </button>
+      `).join('');
+    }
+
+    function selectTextbookTab(tableName) {
+      currentSelectedTable = tableName;
+      renderTextbookTabs();
+      renderSidebarTableList();
+      renderTextbookDetail(tableName);
+    }
+
+    function renderTextbookDetail(tableName) {
+      const container = document.getElementById('textbook-detail-container');
+      const t = catalogData.find(item => item.name === tableName);
+      if (!container || !t) return;
+
+      const cat = CAT_COLORS[t.category] || CAT_COLORS.master;
+
+      const keysHtml = (t.keys || []).map(k => `
+        <div class="key-card">
+          <code>🔑 ${k.name}</code>
+          <div class="role">${k.role}</div>
+        </div>
+      `).join('');
+
+      const groupsHtml = (t.columnGroups || []).map(g => `
+        <div class="column-category-box">
+          <h5>${g.groupName}</h5>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">${g.insight}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            ${g.columns.map(c => `<code style="background:#FFFFFF; padding:2px 8px; border:1px solid var(--border-color); border-radius:4px; font-size:12px;">${c}</code>`).join('')}
+          </div>
+        </div>
+      `).join('');
+
+      const colRowsHtml = (t.columns || []).map(c => {
+        const tagInfo = TAG_BADGES[c.tagType] || TAG_BADGES.metric;
+        return `
+          <tr>
+            <td><code>${c.name}</code></td>
+            <td><strong>${c.meaning}</strong></td>
+            <td><code>${c.type}</code></td>
+            <td>${c.unit}</td>
+            <td>${c.usage}</td>
+            <td><span class="tag-badge ${tagInfo.class}">${tagInfo.text}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      const canHtml = (t.canSee || []).map(item => `<li>✅ ${item}</li>`).join('');
+      const cannotHtml = (t.cannotSee || []).map(item => `<li>❌ ${item}</li>`).join('');
+      const questionsHtml = (t.questions || []).map(q => `<li>❓ ${q}</li>`).join('');
+
+      const joinsHtml = (t.joins || []).map(j => `
+        <div style="background:#F8FAFC; padding:10px 14px; border-radius:6px; border-left:3px solid var(--cat-pop); margin-bottom:8px; font-size:13px;">
+          <strong>${t.name} ── JOIN ──> <code>${j.target}</code></strong><br>
+          • JOIN KEY: <code>${j.key}</code><br>
+          • 목적: ${j.purpose}
+        </div>
+      `).join('');
+
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border-color); padding-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:14px;">
+            <span style="font-size:36px;">${t.icon}</span>
+            <div>
+              <h3 style="font-size:24px; font-weight:800;">${t.name} — ${t.koreanName}</h3>
+              <p style="color:var(--accent-coffee); font-weight:700; font-size:14px;">${t.catchphrase || ''}</p>
+            </div>
+          </div>
+          <span class="t-card-tag" style="background-color:${cat.bg}; color:${cat.color}; font-size:13px; padding:6px 14px;">${cat.name}</span>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[1. 이 테이블은 무엇인가?]</div>
+          <p style="font-size:14px; color:var(--text-secondary); line-height:1.7; background:#F8FAFC; padding:16px; border-radius:8px;">${t.overview}</p>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[2. 한 행(Row)은 무엇인가?]</div>
+          <div class="grain-banner">
+            <div class="grain-visual">1 Row = ${t.grain}</div>
+            <div class="grain-examples">
+              ${(t.grainExamples || []).map(e => `<div>• ${e}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[3. 이 테이블의 핵심 기준 컬럼 (Key)]</div>
+          <div class="keys-card-grid">
+            ${keysHtml}
+          </div>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[4. 컬럼 종류별 그룹화 설명]</div>
+          ${groupsHtml}
+        </div>
+
+        <div>
+          <div class="tb-step-title">[5. 전체 컬럼 사전 (${(t.columns || []).length}개 주요 컬럼)]</div>
+          <div class="dict-table-container">
+            <table class="dict-table">
+              <thead>
+                <tr>
+                  <th>컬럼명</th>
+                  <th>쉬운 설명</th>
+                  <th>유형</th>
+                  <th>단위</th>
+                  <th>분석 활용</th>
+                  <th>속성 태그</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${colRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        ${t.confusingBox ? `
+          <div>
+            <div class="tb-step-title">[6. 헷갈리기 쉬운 컬럼 비교]</div>
+            <div class="confusing-box">
+              <h5>💡 ${t.confusingBox.title}</h5>
+              <p>${t.confusingBox.desc}</p>
+            </div>
+          </div>
+        ` : ''}
+
+        <div>
+          <div class="tb-step-title">[7 & 8. 이 테이블에서 볼 수 있는 것 vs 없는 것]</div>
+          <div class="can-cannot-grid">
+            <div class="can-box">
+              <h5>✅ 이 테이블에서 직접 알 수 있음</h5>
+              <ul style="padding-left:18px; display:flex; flex-direction:column; gap:6px;">${canHtml}</ul>
+            </div>
+            <div class="cannot-box">
+              <h5>❌ 이 테이블만으로는 알 수 없음 (타 테이블 필요)</h5>
+              <ul style="padding-left:18px; display:flex; flex-direction:column; gap:6px;">${cannotHtml}</ul>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[9. 대표 분석 질문]</div>
+          <ul style="padding-left:20px; font-size:14px; color:var(--text-secondary); display:flex; flex-direction:column; gap:8px;">
+            ${questionsHtml}
+          </ul>
+        </div>
+
+        <div>
+          <div class="tb-step-title">[10. 연결 가능한 테이블 & JOIN 관계]</div>
+          ${joinsHtml}
+        </div>
+
+        <div>
+          <div class="tb-step-title">[11. 실제 데이터 한 행 읽기 (Row Reading)]</div>
+          <div id="row-interpreter-container">
+            <div class="row-interpreter-card">
+              <div style="font-size:12px; color:var(--text-light);">📊 DB 실제 Raw Data 행 기록 예시</div>
+              <div class="human-sentence">
+                📌 [실제 데이터 한 행 해석]: "2024년 4분기, 서울 용산구 '이태원 관광특구' 상권의 대표 실적 데이터 행 기록입니다."
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPage2ERD() {
+      const container = document.getElementById('erd-diagram');
+      if (!container || !catalogData || catalogData.length === 0) return;
+
+      container.innerHTML = catalogData.map(t => {
+        const catClass = t.category;
+        const keyNames = (t.keys || []).map(k => k.name).slice(0, 2).join(', ');
+        return `
+          <div class="erd-node ${catClass}" id="erd-node-${t.name}" onclick="selectERDNode('${t.name}')">
+            <div class="erd-node-title">
+              <span>${t.icon}</span> ${t.name}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted);">${t.koreanName}</div>
+            <div class="erd-node-keys">KEY: ${keyNames}</div>
+          </div>
+        `;
+      }).join('');
+
+      const btnReset = document.getElementById('btn-reset-erd');
+      if (btnReset) btnReset.onclick = resetERD;
+    }
+
+    function selectERDNode(tableName) {
+      const target = catalogData.find(t => t.name === tableName);
+      if (!target) return;
+
+      document.querySelectorAll('.erd-node').forEach(node => node.classList.remove('selected', 'dimmed'));
+
+      const selectedNode = document.getElementById(`erd-node-${tableName}`);
+      if (selectedNode) selectedNode.classList.add('selected');
+
+      const targetKeyNames = (target.keys || []).map(k => k.name);
+      const connectedNames = new Set();
+      
+      catalogData.forEach(t => {
+        if (t.name === tableName) return;
+        const tKeyNames = (t.keys || []).map(k => k.name);
+        if (tKeyNames.some(k => targetKeyNames.includes(k))) connectedNames.add(t.name);
+      });
+
+      document.querySelectorAll('.erd-node').forEach(node => {
+        const name = node.id.replace('erd-node-', '');
+        if (name !== tableName && !connectedNames.has(name)) node.classList.add('dimmed');
+      });
+
+      const panel = document.getElementById('erd-info-panel');
+      const connectedList = Array.from(connectedNames).map(n => {
+        const item = catalogData.find(c => c.name === n);
+        return `<strong style="color:var(--cat-pop);">${item.name} (${item.koreanName})</strong>`;
+      }).join(', ');
+
+      panel.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div><strong>📍 선택한 테이블:</strong> <span style="font-weight:800; font-size:15px;">${target.name} (${target.koreanName})</span></div>
+          <div><strong>🔑 대표 JOIN KEY:</strong> <code>${targetKeyNames.join(' + ')}</code></div>
+          <div><strong>🔗 연결된 테이블 (${connectedNames.size}개):</strong> ${connectedList}</div>
+          <div><strong>💡 분석 목적:</strong> ${target.overview}</div>
+        </div>
+      `;
+    }
+
+    function resetERD() {
+      document.querySelectorAll('.erd-node').forEach(node => node.classList.remove('selected', 'dimmed'));
+      const panel = document.getElementById('erd-info-panel');
+      if (panel) {
+        panel.innerHTML = `<div class="info-placeholder">💡 위 ERD 관계도의 테이블 노드를 클릭하여 JOIN KEY와 결합 가능한 테이블을 확인하세요.</div>`;
+      }
+    }
+
+    function setupSqlCopy() {
+      document.querySelectorAll('.btn-copy-sql').forEach(btn => {
+        btn.onclick = () => {
+          const codeId = btn.dataset.code;
+          const codeElement = document.getElementById(codeId);
+          if (codeElement) {
+            navigator.clipboard.writeText(codeElement.innerText);
+            const originalText = btn.innerText;
+            btn.innerText = '✅ 복사됨!';
+            setTimeout(() => btn.innerText = originalText, 2000);
+          }
+        };
+      });
+    }
+
+    function setupGlobalSearch() {
+      const searchInput = document.getElementById('global-search-input');
+      const dropdown = document.getElementById('search-dropdown');
+      if (!searchInput || !dropdown) return;
+
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        if (!query) {
+          dropdown.classList.add('hidden');
+          return;
+        }
+
+        const matches = [];
+        catalogData.forEach(t => {
+          if (t.name.toLowerCase().includes(query) || t.koreanName.toLowerCase().includes(query)) {
+            matches.push({
+              title: `[테이블 교안] ${t.name} (${t.koreanName})`,
+              desc: t.catchphrase || t.overview,
+              action: () => jumpToTableDetail(t.name)
+            });
+          }
+        });
+
+        if ('음식점'.includes(query) || '식후'.includes(query) || '가설3'.includes(query)) {
+          matches.push({
+            title: `[가설 3 레포트] 음식점 점심 ➔ 카페 오후 식후 연계`,
+            desc: `가설 3 시각적 차트 및 상권 전환율 레포트`,
+            action: () => document.getElementById('section-h3-report').scrollIntoView({ behavior: 'smooth' })
+          });
+        }
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div class="search-item"><span class="desc">검색 결과가 없습니다.</span></div>';
+        } else {
+          dropdown.innerHTML = matches.slice(0, 8).map((m, idx) => `
+            <div class="search-item" onclick="executeSearchMatch(${idx})">
+              <span class="title">${m.title}</span>
+              <span class="desc">${m.desc}</span>
+            </div>
+          `).join('');
+          window._currentMatches = matches;
+        }
+        dropdown.classList.remove('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
+      });
+    }
+
+    function executeSearchMatch(idx) {
+      if (window._currentMatches && window._currentMatches[idx]) {
+        window._currentMatches[idx].action();
+        document.getElementById('search-dropdown').classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
